@@ -16,8 +16,8 @@ class LaneFollower(Node):
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
 
         self.cvBridge = CvBridge()
-        self.green_light_detected = False  # Флаг для отслеживания обнаружения зеленого света
-        self.is_active = False  # Флаг активности команды
+        self.green_light_detected = True  # Флаг для отслеживания обнаружения зеленого света
+        self.is_active = True  # Флаг активности команды
         self.follow_yellow_only = False  # Флаг для движения только по желтой линии
 
         # Публикация текущего активного узла
@@ -114,8 +114,7 @@ class LaneFollower(Node):
                 twist.angular.z = -0.5
                 twist.linear.x = 0.2
                 self.pub_cmd_vel.publish(twist)
-                time.sleep(1.5)
-                self.set_active_node('parking 50 0.25')
+                self.set_active_node('parking 100 0.25')
         else:
             # Если движение возможно по обеим линиям, объединяем маски
             mask = cv2.bitwise_or(mask_yellow, mask_white)

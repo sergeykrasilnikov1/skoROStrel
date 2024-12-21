@@ -645,7 +645,7 @@ class TrafficSignDetector(Node):
         self.get_logger().info(f":self.state {self.state}")
         # if self.avoid_obstacles:
         self.turn_speed = 1.3
-        self.forward_speed = 0.16
+        self.forward_speed = 0.157
         if self.state == 'follow_left_wall':
             if min_front_dist < self.front_threshold:
                 self.change_state('follow_right_wall') 
@@ -780,10 +780,10 @@ class TrafficSignDetector(Node):
                 self.add_drive(0.1)
             else:  # park_side == 'left'
                 self.add_rotation(10)
-                self.add_drive(0.013)
+                self.add_drive(0.13)
                 self.add_rotation(80)
                 self.add_drive(0.24)
-                self.add_rotation(120)
+                self.add_rotation(130)
                 self.add_drive(0.40)
                 self.add_rotation(-35)
                 self.add_drive(0.1)
@@ -793,7 +793,7 @@ class TrafficSignDetector(Node):
             self.set_active_node('lane_follower_yellow 100 0.25')
             self.get_logger().info("Parking completed")
             time.sleep(12)
-            self.set_active_node('lane_follower 100 0.25')
+            self.set_active_node('lane_follower 125 0.25')
 
         # twist.linear.x = -2.2
         # twist.angular.z = 0.0
@@ -1038,7 +1038,7 @@ class TrafficSignDetector(Node):
             self.pub_cmd_vel.publish(twist)
             time.sleep(1.1)
             # self.add_rotation(40)
-            self.set_active_node('lane_follower 100 0.3')
+            self.set_active_node('lane_follower 100 0.4')
         elif sign_name == "turn_right":
             self.get_logger().info("Executing turn right")
             twist.linear.x = 0.0
@@ -1046,7 +1046,7 @@ class TrafficSignDetector(Node):
             self.pub_cmd_vel.publish(twist)
             time.sleep(1.2)
             # self.add_rotation(-40)
-            self.set_active_node('lane_follower 100 0.3')
+            self.set_active_node('lane_follower 100 0.4')
         elif sign_name == "repair_work":
             if not self.lidar_active:
                 self.get_logger().info("Executing repair_work")

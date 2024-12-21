@@ -783,7 +783,7 @@ class TrafficSignDetector(Node):
                 self.add_drive(0.13)
                 self.add_rotation(80)
                 self.add_drive(0.24)
-                self.add_rotation(130)
+                self.add_rotation(125)
                 self.add_drive(0.40)
                 self.add_rotation(-35)
                 self.add_drive(0.1)

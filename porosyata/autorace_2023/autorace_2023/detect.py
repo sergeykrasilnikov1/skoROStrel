@@ -44,7 +44,7 @@ class TrafficSignDetector(Node):
         self.avoid_obstacles = False
 
         self.lidar_active = False
-        self.signs_activated = ["parking"]
+        self.signs_activated = [""]
         self.timer_group = MutuallyExclusiveCallbackGroup()
         self.timer = None
 

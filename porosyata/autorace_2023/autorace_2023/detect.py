@@ -24,7 +24,7 @@ class TrafficSignDetector(Node):
     def __init__(self):
         super().__init__('traffic_sign_detector')
 
-        self.sub_image = self.create_subscription(Image, '/color/image', self.image_callback, 5)
+        self.sub_image = self.create_subscription(Image, '/color/image', self.image_callback, 1)
         self.pub_image = self.create_publisher(Image, '/traffic_sign_detector/image', 1)
         self.sub_lidar = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
@@ -277,7 +277,7 @@ class TrafficSignDetector(Node):
         # log(self, f"Target odom: {self.target_odom}", 'INFO')
         return 0
 
-    def is_task_completed(self, epsilon=0.02, min_v=0.025, max_v=0.75, min_w=np.pi / 8, max_w=np.pi / 3, safe_mode=True):
+    def is_task_completed(self, epsilon=0.1, min_v=0.025, max_v=0.75, min_w=np.pi / 8, max_w=np.pi / 3, safe_mode=True):
         """Проверяет выполнено ли задание, возвращает ответ, регулирует скорость.
             Должна первоочередно вызываться в robot.process_mode() для правильной обработки заданий.
 
@@ -306,25 +306,25 @@ class TrafficSignDetector(Node):
                 if min(distances[-1], distances[0], distances[1]) < 0.2:
                     self.current_task = None
                     self.target_odom = None
-                    self.move(0.0, 0.0)
-                    time.sleep(0.1)
+                    self.move(-0.4, 0.2)
+                    time.sleep(0.01)
                     return True
             if abs(err_x) < epsilon and abs(err_y) < epsilon:
                 self.current_task = None
                 self.target_odom = None
                 self.move(0.0, 0.0)
-                time.sleep(0.1)
+                time.sleep(0.01)
                 return True
             new_v = max(err_x, err_y) * max_v
             self.move(linear_x=new_v)
             return False
         elif self.current_task == 'rotate':
 
-            if abs(err_a) < epsilon / 10:
+            if abs(err_a) < 0.1:
                 self.current_task = None
                 self.target_odom = None
                 self.move(0.0, 0.0)
-                time.sleep(0.1)
+                time.sleep(0.01)
                 return True
             new_w = err_a * max_w
             if new_w > max_w:
@@ -529,14 +529,28 @@ class TrafficSignDetector(Node):
         upper_green = np.array([80, 255, 255])
         mask_green = cv2.inRange(hsv, lower_green, upper_green)
         green_pixels = cv2.countNonZero(mask_green)
+        twist = Twist()
         # self.get_logger().info(f"green_pixels {green_pixels}")
+        if 100 < green_pixels < 2000 and not self.leave_tonnel and 'tonnel' in self.signs_activated:
+            self.leave_tonnel = True
+            self.current_task = None
+            self.set_active_node('traffic_sign_detector 100 0.25')
+        #     self.lidar_active = False
+        #     self.set_active_node('lane_follower 100 0.1')
+            twist.linear.x = 0.0 
+            twist.angular.z = -0.5  
+            self.pub_cmd_vel.publish(twist)
+            time.sleep(2)
+            # twist.linear.x = 0.2 
+            # twist.angular.z = 0.00  
+            # self.pub_cmd_vel.publish(twist)
         if 3500 < green_pixels and 'tonnel' in self.signs_activated:  
             self.set_active_node('traffic_sign_detector 100 0.25')
             text = String()
             text.data = 'finish'
             self.finish.publish(text)
             time.sleep(0.2)
-            twist = Twist()
+            
             twist.linear.x = 0.0 
             twist.angular.z = 0.0  
             self.pub_cmd_vel.publish(twist)
@@ -588,7 +602,7 @@ class TrafficSignDetector(Node):
 
         ranges = np.array(msg.ranges)
         self.distances = msg.ranges
-        ranges = np.where(np.isfinite(ranges), ranges, 10)  # Обработка NaN/Inf
+        ranges = np.where(np.isfinite(ranges), ranges, 20)  # Обработка NaN/Inf
 
         front_range = ranges[:25].tolist() + ranges[-25:].tolist()
         left_range = ranges[60:120]
@@ -649,22 +663,24 @@ class TrafficSignDetector(Node):
 
     def follow_wall(self, twist, avg_left_dist, avg_right_dist, min_front_dist):
     # Следование за левой стеной или правой
-        # self.get_logger().info(f"Left range: {avg_left_dist}, Right range: {avg_right_dist} ")
+        # self.get_logger().info(f"Lef: {avg_left_dist}, Right range: {avg_right_dist} ")
         # if self.avoid_obstacles:
         if not self.is_repair_work:
             self.is_repair_work = True
-            self.add_drive(1.05)
+            # time.sleep(0.2)
+            self.add_drive(1.0)
             self.add_rotation(77)
-            self.add_drive(0.43)
+            self.add_drive(0.44)
             self.add_rotation(78)
             self.add_drive(0.27)
             self.add_rotation(-81)
-            self.add_drive(0.45)
+            self.add_drive(0.43)
             self.add_rotation(-80)
-            self.add_drive(0.30)
+            self.add_drive(0.35)
             self.add_rotation(100)
             self.add_drive(0.50)
-            self.add_rotation(75)
+            self.add_rotation(65)
+            self.add_drive(0.10)
         if  not self.command_queue and self.is_repair_work == True:
             self.lidar_active = False
             self.set_active_node('lane_follower_yellow 100 0.25')
@@ -805,7 +821,7 @@ class TrafficSignDetector(Node):
                 self.add_rotation(-80)
                 self.add_drive(0.24)
                 self.add_rotation(-120)
-                self.add_drive(0.40)
+                self.add_drive(0.39)
                 self.add_rotation(40)
                 self.add_drive(0.1)
             else:  # park_side == 'left'
@@ -888,62 +904,73 @@ class TrafficSignDetector(Node):
 
 
     def handle_tonnel(self, twist, front_range, avg_left_dist, avg_right_dist, ranges, msg):
-        if avg_right_dist > 3 and avg_left_dist > 3:
-            # self.lidar_active = False
+        if not self.leave_tonnel:
             
-            self.set_active_node('lane_follower 75 0.25')
-            # time.sleep(8)
 
-        sectored_distances = self.get_sectored_lidar()
-        if min(ranges[60:120]) < 0.05:
-            twist.linear.x = 0.2
-            twist.angular.z = -0.1
-            self.pub_cmd_vel.publish(twist)
-            time.sleep(0.1)
-            return
-        if min(front_range) <0.08 or sectored_distances[0] < 0.15:
-                # robot.move(linear_x=0.0, angular_z=0.0):
-            twist.linear.x = -0.3
-            twist.angular.z = 0.0
-            self.pub_cmd_vel.publish(twist)
-            time.sleep(0.1)
-            return
-        odom = self.get_normalized_odometry()
-        
-        if self.tonnel_state ==0:
-            self.min_rad = odom['orient']
-            self.max_rad = odom['orient'] + np.pi / 2
-            self.tonnel_state+=1
-        # if not self.reached_goal_drive or not self.reached_goal:
-        #     return
-        # Step 1: Determine the angle to turn
-        elif self.tonnel_state ==1 and not self.current_task:
-        # elif self.tonnel_state ==1:
+            sectored_distances = self.get_sectored_lidar()
+            if min(ranges[60:120]) < 0.05:
+                twist.linear.x = 0.2
+                twist.angular.z = -0.3
+                self.pub_cmd_vel.publish(twist)
+                time.sleep(0.1)
+                return
+            # if min(front_range) <0.1:
+            #         # robot.move(linear_x=0.0, angular_z=0.0):
+            #     twist.linear.x = -0.2
+            #     twist.angular.z = 0.0
+            #     self.pub_cmd_vel.publish(twist)
+            #     time.sleep(0.4)
+            #     return
+            odom = self.get_normalized_odometry()
             
-           
-            # self.target_angle = 180 / np.pi * self.angle_to_turn
-            # self.initial_yaw = None  # Reset yaw for turning
-            self.filter_lidar_angles(sectored_distances, odom)
-            if self.angle_diff!=0:
+            if self.tonnel_state ==0:
+                self.min_rad = odom['orient']
+                self.max_rad = odom['orient'] + np.pi / 2
+                self.tonnel_state+=1
+            # if not self.reached_goal_drive or not self.reached_goal:
+            #     return
+            # Step 1: Determine the angle to turn
+            elif self.tonnel_state ==1 and not self.current_task:
+            # elif self.tonnel_state ==1:
+                
+            
+                # self.target_angle = 180 / np.pi * self.angle_to_turn
+                # self.initial_yaw = None  # Reset yaw for turning
+                self.filter_lidar_angles(sectored_distances, odom)
+                # if self.angle_diff!=0:
                 self.rotate_task(self.angle_diff)
-                # time.sleep(0.1)
-            # self.reached_goal = False  # Reset to ensure turning executes
-            self.tonnel_state+=1
-            self.get_logger().info(f"Target angle: {self.angle_diff:.2f} degrees, Target distance: {self.distance_diff:.2f} m self.tonnel_state {self.tonnel_state}")
-            # self.reached_goal_drive = False
+                    # time.sleep(0.1)
+                # self.reached_goal = False  # Reset to ensure turning executes
+                self.tonnel_state+=1
+                self.get_logger().info(f"Target angle: {self.angle_diff:.2f} degrees, Target distance: {self.distance_diff:.2f} m self.tonnel_state {self.tonnel_state}")
+                # self.reached_goal_drive = False
 
-        # Step 3: Move forward after completing the turn
+            # Step 3: Move forward after completing the turn
+            else:
+                if not self.current_task:
+                    self.move_task(self.distance_diff * 0.5)
+                # self.target_distance = self.max_dst * 0.2  # Set target distance to travel
+                # self.linear_speed = 0.2  # Set forward speed
+                # self.start_x = None
+                # self.start_y = None
+                # self.current_x = None
+                # self.current_y = None
+                # self.reached_goal_drive = False
+                    self.tonnel_state-=1
         else:
-            if min(front_range) > 0.2  and not self.current_task:
-                self.move_task(self.distance_diff * 0.5, self.distance_diff * 0.5)
-            # self.target_distance = self.max_dst * 0.2  # Set target distance to travel
-            # self.linear_speed = 0.2  # Set forward speed
-            # self.start_x = None
-            # self.start_y = None
-            # self.current_x = None
-            # self.current_y = None
-            # self.reached_goal_drive = False
-                self.tonnel_state-=1
+            self.get_logger().info(f'min(front_range) {min(front_range)}')
+            if avg_right_dist > 3 and avg_left_dist > 3:
+                # self.lidar_active = False
+                # self.lidar_active = False
+                self.set_active_node('lane_follower 75 0.25')
+                # time.sleep(8)
+            if min(front_range) > 0.2:
+                twist.linear.x = 0.05 
+                twist.angular.z = 0.0 
+            else:
+                twist.linear.x = 0.0  
+                twist.angular.z = 0.2 
+            self.pub_cmd_vel.publish(twist)
 
     # Log debug information (optional)
         
@@ -1085,25 +1112,24 @@ class TrafficSignDetector(Node):
             # self.add_rotation(-40)
             self.set_active_node('lane_follower 100 0.4')
         elif sign_name == "repair_work":
-            if not self.lidar_active:
-                self.get_logger().info("Executing repair_work")
-                # time.sleep(1.0)
-                self.set_active_node('traffic_sign_detector 100 0.25')
-                # self.add_rotation(-5)
-                # self.add_drive(0.72)
-                # twist.linear.x = 0.28
-                # twist.angular.z = 0.0
-                # self.pub_cmd_vel.publish(twist)
-                # time.sleep(3.0)
-                # twist.linear.x = 0.0
-                # twist.angular.z = 0.0
-                # self.pub_cmd_vel.publish(twist)
-                # time.sleep(1.0)
-                # twist.linear.x = 0.1
-                # twist.angular.z = 0.0
-                # self.pub_cmd_vel.publish(twist)
-                # time.sleep(1.3)
-                self.lidar_active = True
+            self.get_logger().info("Executing repair_work")
+            # time.sleep(1.0)
+            # self.set_active_node('traffic_sign_detector 100 0.25')
+            # self.add_rotation(-5)
+            # self.add_drive(0.72)
+            # twist.linear.x = 0.28
+            # twist.angular.z = 0.0
+            # self.pub_cmd_vel.publish(twist)
+            # time.sleep(3.0)
+            twist.linear.x = 0.0
+            twist.angular.z = 0.0
+            self.pub_cmd_vel.publish(twist)
+            time.sleep(1.0)
+            # twist.linear.x = 0.1
+            # twist.angular.z = 0.0
+            # self.pub_cmd_vel.publish(twist)
+            # time.sleep(1.3)
+            self.lidar_active = True
         elif sign_name == "parking":
             self.lidar_active = False
             twist.linear.x = 0.2
@@ -1138,7 +1164,7 @@ class TrafficSignDetector(Node):
 
         if not self.lidar_active:    
             self.set_active_node('lane_follower 75 0.25')
-            self.get_logger().info(f"active {self.is_active}")
+            self.get_logger().info(f"detect active {self.is_active}")
 
 
 def main(args=None):

@@ -117,6 +117,7 @@ class TrafficSignDetector(Node):
         self.is_parking = False
         self.parking_start = False
         self.is_repair_work = False
+        self.start_repair_work  = False
         # self.rotate_task(3)
 
 
@@ -665,20 +666,19 @@ class TrafficSignDetector(Node):
     # Следование за левой стеной или правой
         # self.get_logger().info(f"Lef: {avg_left_dist}, Right range: {avg_right_dist} ")
         # if self.avoid_obstacles:
-        if not self.is_repair_work:
+        if not self.is_repair_work and min_front_dist<0.4:
+            self.set_active_node('traffic_sign_detector 100 0.25')
             self.is_repair_work = True
             # time.sleep(0.2)
-            self.add_drive(1.0)
-            self.add_rotation(77)
-            self.add_drive(0.44)
-            self.add_rotation(78)
-            self.add_drive(0.27)
-            self.add_rotation(-81)
+            # self.add_drive(1.05)
+            self.add_rotation(85)
+            self.add_drive(0.35)
+            self.add_rotation(-80)
             self.add_drive(0.43)
             self.add_rotation(-80)
             self.add_drive(0.35)
             self.add_rotation(100)
-            self.add_drive(0.50)
+            self.add_drive(0.44)
             self.add_rotation(65)
             self.add_drive(0.10)
         if  not self.command_queue and self.is_repair_work == True:
@@ -1121,10 +1121,13 @@ class TrafficSignDetector(Node):
             # twist.angular.z = 0.0
             # self.pub_cmd_vel.publish(twist)
             # time.sleep(3.0)
-            twist.linear.x = 0.0
-            twist.angular.z = 0.0
-            self.pub_cmd_vel.publish(twist)
-            time.sleep(1.0)
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # self.pub_cmd_vel.publish(twist)
+            # time.sleep(1.0)
+            self.set_active_node('lane_follower_white 100 0.25')
+            # return
+            # time.sleep(1.0)
             # twist.linear.x = 0.1
             # twist.angular.z = 0.0
             # self.pub_cmd_vel.publish(twist)

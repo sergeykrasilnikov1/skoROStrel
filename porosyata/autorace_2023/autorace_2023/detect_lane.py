@@ -19,7 +19,7 @@ class LaneFollower(Node):
         self.green_light_detected = True  # Флаг для отслеживания обнаружения зеленого света
         self.is_active = True  # Флаг активности команды
         self.follow_yellow_only = False  # Флаг для движения только по желтой линии
-
+        self.follow_white_only = False
         # Публикация текущего активного узла
         self.control_state_pub = self.create_publisher(String, '/control/active_node', 1)
         self.control_state_sub = self.create_subscription(String, '/control/active_node', self.control_state_callback, 1)
@@ -42,8 +42,11 @@ class LaneFollower(Node):
         msg, turn_speed, speed = msg.data.split()
         if msg == 'lane_follower_yellow':
             self.set_follow_yellow_only(True)
+        elif msg == 'lane_follower_white':
+            self.set_follow_white_only(True)
         else:
             self.set_follow_yellow_only(False)
+            self.set_follow_white_only(False)
             self.is_active = (msg == 'lane_follower')  # Проверяем, активна ли текущая нода
             self.turn_speed = int(turn_speed)
             self.max_linear_speed = float(speed)
@@ -115,6 +118,8 @@ class LaneFollower(Node):
                 twist.linear.x = 0.2
                 self.pub_cmd_vel.publish(twist)
                 self.set_active_node('parking 100 0.25')
+        # elif self.follow_white_only:
+
         else:
             # Если движение возможно по обеим линиям, объединяем маски
             mask = cv2.bitwise_or(mask_yellow, mask_white)
@@ -144,6 +149,14 @@ class LaneFollower(Node):
             if not yellow_center:
                 yellow_center = 0
             center_offset = yellow_center - center_x
+            center_offset+= 260
+        elif self.follow_white_only:
+            right_half = cv_image[:, center_x:]
+            white_center = self.find_line_center(right_half, lower_white, upper_white)
+            if not white_center:
+                white_center = 0
+            center_offset = white_center - center_x
+            self.get_logger().info(f"center: {center_offset}")
             center_offset+= 260
         else:
             # Для обычного режима анализируем обе стороны
@@ -242,6 +255,12 @@ class LaneFollower(Node):
         # Переключаем флаг движения только по желтой линии
         self.is_active = value
         self.follow_yellow_only = value
+        self.get_logger().info(f"Follow yellow only: {self.follow_yellow_only}")
+
+    def set_follow_white_only(self, value):
+        # Переключаем флаг движения только по желтой линии
+        self.is_active = value
+        self.follow_white_only = value
         self.get_logger().info(f"Follow yellow only: {self.follow_yellow_only}")
 
 

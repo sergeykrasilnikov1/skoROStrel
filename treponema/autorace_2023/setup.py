@@ -16,8 +16,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='ruby',
-    maintainer_email='dimaskrut71@gmail.com',
+    maintainer='treponema',
+    maintainer_email="s.krasiknikov2@g.nsu.ru",
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
@@ -25,7 +25,6 @@ setup(
         'console_scripts': [
             "detect = autorace_2023.detect:main",
             "detect_lane = autorace_2023.detect_lane:main",
-            "pid_lane = autorace_2023.pid_lane:main",
         ],
     },
 )

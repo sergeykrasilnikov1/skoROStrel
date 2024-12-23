@@ -1,5 +1,5 @@
 # porosyata
-autorace_2023 repo (ПОROSЯТА team)
+autorace_2023 repo (treponema team)
 
 ```
 cd ros2_ws/src

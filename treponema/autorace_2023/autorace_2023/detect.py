@@ -216,12 +216,17 @@ class TrafficSignDetector(Node):
     def rotate_task(self, angle, angular_v=np.pi / 2):
         odom = self.get_normalized_odometry()
         new_orient = odom['orient'] + angle
+        if new_orient < 0:
+            new_orient = np.pi + (np.pi + new_orient)
+        if new_orient >= (2 * np.pi):
+            new_orient = new_orient - (2 * np.pi)
         self.target_odom = {
             'pos': odom['pos'],
             'orient': new_orient,
             'linear_v': odom['linear_v'],
             'angular_v': angular_v
         }
+        self.get_logger().info(f"odom: {odom} self.target_odom {self.target_odom}")
         self.move(angular_z=angular_v)
         self.current_task = 'rotate'
         return 0
@@ -254,7 +259,7 @@ class TrafficSignDetector(Node):
                     self.current_task = None
                     self.target_odom = None
                     self.move(-0.6, 0.3)
-                    time.sleep(0.01)
+                    time.sleep(0.2)
                     return True
             if abs(err_x) < epsilon and abs(err_y) < epsilon:
                 self.current_task = None
@@ -304,7 +309,7 @@ class TrafficSignDetector(Node):
         try:
             odom = self.get_odometry()
 
-            # Переводим блядские кватернионы в радианы
+            # Переводим  кватернионы в радианы
             def quaternion_to_z_angle(q):
                 # q is a quaternion [x, y, z, w]
                 w = q[3]
@@ -317,13 +322,17 @@ class TrafficSignDetector(Node):
                     odom['orientation'].w
             ]
             z = quaternion_to_z_angle(q)
-
+            if z < 0:
+                z = np.pi + (np.pi + z)
+            if z >= (2 * np.pi):
+                z = z - (2 * np.pi)
             normalized_odom = {
                 'pos': (odom['position'].x, odom['position'].y),
-                'orient': self.normalize_angle(z),
+                'orient': z,
                 'linear_v': odom['linear_velocity'].x,
                 'angular_v': odom['angular_velocity'].z
             }
+            
             return normalized_odom
         except Exception as e:
             time.sleep(1)
@@ -740,7 +749,7 @@ class TrafficSignDetector(Node):
                     
                 self.min_rad = odom['orient']
                 self.max_rad = odom['orient'] + np.pi / 2
-                self.get_logger().info(f"odom: {odom} sectored_distances {sectored_distances}")
+                self.get_logger().info(f"odom: {odom}")
                 self.tonnel_state+=1
 
             # Step 1: Determine the angle to turn

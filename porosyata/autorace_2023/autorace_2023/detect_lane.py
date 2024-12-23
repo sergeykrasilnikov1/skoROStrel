@@ -16,8 +16,8 @@ class LaneFollower(Node):
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
 
         self.cvBridge = CvBridge()
-        self.green_light_detected = True  # Флаг для отслеживания обнаружения зеленого света
-        self.is_active = True  # Флаг активности команды
+        self.green_light_detected = False  # Флаг для отслеживания обнаружения зеленого света
+        self.is_active = False  # Флаг активности команды
         self.follow_yellow_only = False  # Флаг для движения только по желтой линии
         self.follow_white_only = False
         # Публикация текущего активного узла

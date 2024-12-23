@@ -11,7 +11,7 @@ git clone https://github.com/RubyRode/porosyata.git
 cd ..
 ```
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 ```
 colcon build --packages-select autorace_2023 autorace_camera autorace_msgs

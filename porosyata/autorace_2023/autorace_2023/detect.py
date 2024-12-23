@@ -26,7 +26,7 @@ class TrafficSignDetector(Node):
 
         self.cvBridge = CvBridge()
         
-        self.model = YOLO(os.getcwd() + '/src/porosyata/autorace_2023/images/best.pt')
+        self.model = YOLO(os.getcwd() + '/src/treponema/autorace_2023/images/best.pt')
         self.is_active = False
         self.control_state_pub = self.create_publisher(String, '/control/active_node', 1)
         self.control_state_sub = self.create_subscription(String, '/control/active_node', self.control_state_callback, 1)
@@ -502,7 +502,7 @@ class TrafficSignDetector(Node):
         if 3500 < green_pixels and 'tonnel' in self.signs_activated:  
             self.set_active_node('traffic_sign_detector 100 0.25')
             text = String()
-            text.data = 'finish'
+            text.data = 'treponema'
             self.finish.publish(text)
             time.sleep(0.2)
             

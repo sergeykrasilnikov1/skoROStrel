@@ -1,11 +1,11 @@
-# porosyata
-autorace_2023 repo (ПОROSЯТА team)
+# Treponema
+autorace 2024
 
 ```
 cd ros2_ws/src
 ```
 ```
-git clone https://github.com/RubyRode/porosyata.git
+git clone https://github.com/sergeykrasilnikov1/skoROStrel
 ```
 ```
 cd ..

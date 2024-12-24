@@ -441,7 +441,7 @@ class TrafficSignDetector(Node):
         
         # Публикуем угловую скорость
         twist_msg = Twist()
-        twist_msg.angular.z = np.sign(angle_diff)*((angle_diff/40)**2 + 0.1) # Поворачиваем в нужную сторону
+        twist_msg.angular.z = np.sign(angle_diff)*((angle_diff/45)**2 + 0.09) # Поворачиваем в нужную сторону
         self.pub_cmd_vel.publish(twist_msg)
     
     def stop_robot(self):

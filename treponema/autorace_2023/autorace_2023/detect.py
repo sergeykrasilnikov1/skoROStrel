@@ -26,7 +26,7 @@ class TrafficSignDetector(Node):
 
         self.cvBridge = CvBridge()
         
-        self.model = YOLO(os.getcwd() + '/src/treponema/autorace_2023/images/best.pt')
+        self.model = YOLO(os.getcwd() + '/src/skoROStrel/treponema/autorace_2023/images/best.pt')
         self.is_active = False
         self.control_state_pub = self.create_publisher(String, '/control/active_node', 1)
         self.control_state_sub = self.create_subscription(String, '/control/active_node', self.control_state_callback, 1)

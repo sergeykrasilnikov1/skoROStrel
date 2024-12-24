@@ -73,9 +73,9 @@ def generate_launch_description():
     
 
     return LaunchDescription([
-        bringup,
+        # bringup,
         camera,
         sign_detection,
         lane_detection,
-        referee,
+        # referee,
     ])

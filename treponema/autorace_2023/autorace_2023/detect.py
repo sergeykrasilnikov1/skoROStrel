@@ -86,6 +86,8 @@ class TrafficSignDetector(Node):
 
         self.current_task = None
 
+        self.start_yaw = None
+
 
 
         self.command_queue = []  # Очередь команд
@@ -342,9 +344,14 @@ class TrafficSignDetector(Node):
 
     def odom_callback(self, msg):
         # Получаем текущий угол из одометрии
+        
         orientation_q = msg.pose.pose.orientation
+        if not self.start_yaw:
+            _, _, self.start_yaw = self.euler_from_quaternion(orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w)
+            self.start_yaw = degrees(self.start_yaw)
         _, _, yaw = self.euler_from_quaternion(orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w)
         self.current_yaw = degrees(yaw)  # Конвертируем в градусы
+        # self.get_logger().info(f"self.current_yaw {self.current_yaw} self.start_yaw {self.start_yaw}")
 
         self.current_x = msg.pose.pose.position.x
         self.current_y = msg.pose.pose.position.y
@@ -429,7 +436,7 @@ class TrafficSignDetector(Node):
         if angle_diff > 180:  # Двигаемся в минимальном направлении
             angle_diff -= 360
 
-        # self.get_logger().info(f"Angle Diff: {angle_diff:.2f}")
+        self.get_logger().info(f"Angle Diff: {angle_diff:.2f}")
 
         # Проверяем, достигли ли цели
         if abs(angle_diff) <= self.angle_tolerance:
@@ -496,7 +503,8 @@ class TrafficSignDetector(Node):
         green_pixels = cv2.countNonZero(mask_green)
         twist = Twist()
         # self.get_logger().info(f"green_pixels {green_pixels}")
-        if 100 < green_pixels < 2000 and not self.leave_tonnel and 'tonnel' in self.signs_activated:
+        if 100 < green_pixels < 1300 and not self.leave_tonnel and 'tonnel' in self.signs_activated and not self.executing_command:
+            self.get_logger().info(f"green_pixels {green_pixels}")
             self.leave_tonnel = True
             self.current_task = None
             self.set_active_node('traffic_sign_detector 100 0.25')
@@ -508,7 +516,7 @@ class TrafficSignDetector(Node):
             # twist.linear.x = 0.2 
             # twist.angular.z = 0.00  
             # self.pub_cmd_vel.publish(twist)
-        if 3500 < green_pixels and 'tonnel' in self.signs_activated:  
+        if 3500 < green_pixels and 'tonnel' in self.signs_activated and self.leave_tonnel:  
             self.set_active_node('traffic_sign_detector 100 0.25')
             text = String()
             text.data = 'treponema'
@@ -547,7 +555,7 @@ class TrafficSignDetector(Node):
 
         ranges = np.array(msg.ranges)
         self.distances = msg.ranges
-        ranges = np.where(np.isfinite(ranges), ranges, 20)  # Обработка NaN/Inf
+        ranges = np.where(np.isfinite(ranges), ranges, 10)  # Обработка NaN/Inf
 
         front_range = ranges[:25].tolist() + ranges[-25:].tolist()
         left_range = ranges[60:120]
@@ -560,11 +568,11 @@ class TrafficSignDetector(Node):
 
 
         twist = Twist()
-        if 'tonnel' in self.signs_activated:
+        if 'tonnel' in self.signs_activated and not self.executing_command:
             self.handle_tonnel(twist, front_range, avg_left_dist, avg_right_dist, np.array(msg.ranges), msg)
-        elif 'cross_walk' in self.signs_activated:
+        elif 'cross_walk' in self.signs_activated and not self.executing_command:
             self.handle_crosswalk(twist, ranges)
-        elif self.parking_active:
+        elif self.parking_active and not self.executing_command:
             # self.get_logger().info(f"self.command_queue: {self.command_queue}")
             if not self.parking_start:
                 self.parking_start = True
@@ -736,13 +744,13 @@ class TrafficSignDetector(Node):
                 #     self.pub_cmd_vel.publish(twist)
                 #     time.sleep(0.1)
                 #     return
-                # if min(front_range) <0.1:
-                #         # robot.move(linear_x=0.0, angular_z=0.0):
-                #     twist.linear.x = -0.2
-                #     twist.angular.z = 0.0
-                #     self.pub_cmd_vel.publish(twist)
-                #     time.sleep(0.4)
-                #     return
+                if min(front_range) > 0.4 and self.tonnel_state ==0:
+                        # robot.move(linear_x=0.0, angular_z=0.0):
+                    twist.linear.x = 0.2
+                    twist.angular.z = 0.0
+                    self.pub_cmd_vel.publish(twist)
+                    # time.sleep(0.02)
+                    return
                 odom = self.get_normalized_odometry()
 
                 if self.tonnel_state ==0:
@@ -765,18 +773,19 @@ class TrafficSignDetector(Node):
                 # Step 3: Move forward after completing the turn
                 else:
                     if not self.current_task:
-                        self.move_task(self.distance_diff)
+                        self.move_task(self.distance_diff*0.5)
                         self.tonnel_state-=1
         else:
-            self.get_logger().info(f'min(front_range) {min(front_range)}')
-            if avg_right_dist > 3 and avg_left_dist > 3:
+            # self.get_logger().info(f'min(front_range) {min(front_range)}')
+            if avg_right_dist > 3 and avg_left_dist > 4:
+                self.get_logger().info(f"exit avg_left_dist {avg_left_dist}")
                 self.set_active_node('lane_follower 75 0.25')
             if min(front_range) > 0.2:
                 twist.linear.x = 0.08 
                 twist.angular.z = 0.0 
             else:
                 twist.linear.x = 0.0  
-                twist.angular.z = 0.4 
+                twist.angular.z = 0.2
             self.pub_cmd_vel.publish(twist)
 
         
@@ -923,7 +932,7 @@ class TrafficSignDetector(Node):
             # twist.angular.z = 0.0
             # self.pub_cmd_vel.publish(twist)
             # time.sleep(1.0)
-            self.set_active_node('lane_follower_white 100 0.25')
+            self.set_active_node('lane_follower_white 100 0.65')
             # return
             # time.sleep(1.0)
             # twist.linear.x = 0.1
@@ -945,18 +954,20 @@ class TrafficSignDetector(Node):
             self.set_active_node('traffic_sign_detector 100 0.25')
         elif sign_name == "tonnel":
             self.create_timer(0.2, self.process_mode)
-            time.sleep(1.1)
+            # time.sleep(1.1)
             self.set_active_node('traffic_sign_detector 100 0.25')
-            twist.linear.x = 0.2
-            twist.angular.z = 0.05
-            self.pub_cmd_vel.publish(twist)
-            time.sleep(4.5)
+            # twist.linear.x = 0.2
+            # twist.angular.z = 0.05
+            # self.pub_cmd_vel.publish(twist)
+            # time.sleep(3.5)
+            self.add_rotation(-90-self.current_yaw-2)
+            self.add_drive(0.75)
+            self.get_logger().info(f"self.current_yaw {self.current_yaw} self.start_yaw {self.start_yaw}")
+            # twist.linear.x = 0.0
+            # twist.angular.z = 0.0
+            # self.pub_cmd_vel.publish(twist)
             
-            twist.linear.x = 0.0
-            twist.angular.z = 0.0
-            self.pub_cmd_vel.publish(twist)
-            
-            time.sleep(2.0)
+            # time.sleep(2.0)
             self.lidar_active = True  
             
 

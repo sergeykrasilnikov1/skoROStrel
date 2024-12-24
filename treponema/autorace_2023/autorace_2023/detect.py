@@ -100,12 +100,12 @@ class TrafficSignDetector(Node):
     def add_rotation(self, angle_deg):
         """Добавляем команду на поворот в очередь"""
         self.command_queue.append(('rotate', angle_deg))
-        self.get_logger().info(f"Added rotation command: {angle_deg} degrees.")
+        # self.get_logger().info(f"Added rotation command: {angle_deg} degrees.")
 
     def add_drive(self, distance_m):
         """Добавляем команду на движение в очередь"""
         self.command_queue.append(('drive', distance_m))
-        self.get_logger().info(f"Added drive command: {distance_m} meters.")
+        # self.get_logger().info(f"Added drive command: {distance_m} meters.")
 
     def execute_commands(self):
         if self.executing_command or not self.command_queue:
@@ -125,7 +125,7 @@ class TrafficSignDetector(Node):
         self.target_angle = angle_deg
         self.initial_yaw = None
         self.executing_command = True
-        self.get_logger().info(f"Starting rotation to {angle_deg} degrees.")
+        # self.get_logger().info(f"Starting rotation to {angle_deg} degrees.")
         self.timer2 = self.create_timer(0.01, self.rotate_callback)
         
 
@@ -373,12 +373,12 @@ class TrafficSignDetector(Node):
 
         # Вычисляем пройденное расстояние
         distance_travelled = self.calculate_distance(self.start_x, self.start_y, self.current_x, self.current_y)
-        self.get_logger().info(f"Distance travelled: {distance_travelled:.2f} m")
+        # self.get_logger().info(f"Distance travelled: {distance_travelled:.2f} m")
 
         # Проверяем, достиг ли робот целевого расстояния
         if distance_travelled >= self.target_distance - self.distance_tolerance:
             self.stop_robot()
-            self.get_logger().info("Target distance reached!")
+            # self.get_logger().info("Target distance reached!")
             self.executing_command = False
             self.timer2.cancel()
             return
@@ -412,7 +412,7 @@ class TrafficSignDetector(Node):
         self.start_x = self.current_x
         self.start_y = self.current_y
         self.executing_command = True
-        self.get_logger().info(f"Starting drive for {distance_m} meters.")
+        # self.get_logger().info(f"Starting drive for {distance_m} meters.")
         self.timer2 = self.create_timer(0.01, self.drive_callback)
 
     def rotate_callback(self):
@@ -422,19 +422,19 @@ class TrafficSignDetector(Node):
         if self.initial_yaw is None:
             self.initial_yaw = self.current_yaw
             self.target_yaw = (self.initial_yaw + self.target_angle) % 360
-            self.get_logger().info(f"Starting rotation: Target Yaw = {self.target_yaw:.2f}")
+            # self.get_logger().info(f"Starting rotation: Target Yaw = {self.target_yaw:.2f}")
         
         # Рассчитываем ошибку угла
         angle_diff = (self.target_yaw - self.current_yaw + 360) % 360
         if angle_diff > 180:  # Двигаемся в минимальном направлении
             angle_diff -= 360
 
-        self.get_logger().info(f"Angle Diff: {angle_diff:.2f}")
+        # self.get_logger().info(f"Angle Diff: {angle_diff:.2f}")
 
         # Проверяем, достигли ли цели
         if abs(angle_diff) <= self.angle_tolerance:
             self.stop_robot()
-            self.get_logger().info("Target angle reached!")
+            # self.get_logger().info("Target angle reached!")
             self.executing_command = False
             self.timer2.cancel()
             return
@@ -448,7 +448,7 @@ class TrafficSignDetector(Node):
         # Останавливаем робота
         stop_msg = Twist()
         self.pub_cmd_vel.publish(stop_msg)
-        self.get_logger().info("Robot stopped.")
+        # self.get_logger().info("Robot stopped.")
 
     def control_state_callback(self, msg):
         msg, turn_speed, speed = msg.data.split()
@@ -565,7 +565,7 @@ class TrafficSignDetector(Node):
         elif 'cross_walk' in self.signs_activated:
             self.handle_crosswalk(twist, ranges)
         elif self.parking_active:
-            self.get_logger().info(f"self.command_queue: {self.command_queue}")
+            # self.get_logger().info(f"self.command_queue: {self.command_queue}")
             if not self.parking_start:
                 self.parking_start = True
                 self.add_rotation(-5)
@@ -573,7 +573,7 @@ class TrafficSignDetector(Node):
 
                 
             elif self.parking_start and not self.command_queue:
-                self.get_logger().info(f"self.command_queue: {self.command_queue}")
+                # self.get_logger().info(f"self.command_queue: {self.command_queue}")
                 self.handle_parking(twist, left_range, right_range)
         else:
             if not self.executing_command:
@@ -660,7 +660,7 @@ class TrafficSignDetector(Node):
             self.is_parking = True
             self.get_logger().info("Parking mode activated")
 
-            self.get_logger().info(f"Left range: {left_dist}, Right range: {right_dist}")
+            # self.get_logger().info(f"Left range: {left_dist}, Right range: {right_dist}")
 
             if min(right_dist) < 0.4: 
                 park_side = 'left'
@@ -669,7 +669,7 @@ class TrafficSignDetector(Node):
                 
                 park_side = 'right'
                 self.get_logger().info("Parking on the right side.")
-            self.get_logger().info(f" command_queue {self.command_queue}")
+            # self.get_logger().info(f" command_queue {self.command_queue}")
             if park_side == 'right':
                 self.add_rotation(-10)
                 self.add_drive(0.14)
@@ -721,52 +721,52 @@ class TrafficSignDetector(Node):
 
 
     def handle_tonnel(self, twist, front_range, avg_left_dist, avg_right_dist, ranges, msg):
-        if avg_right_dist > 0.4 and self.tonnel_state ==0:
-            twist.linear.x = 0.0  
-            twist.angular.z = -0.4
-            self.pub_cmd_vel.publish(twist)
-            return
+        # if avg_right_dist > 0.4 and self.tonnel_state ==0:
+        #     twist.linear.x = 0.0  
+        #     twist.angular.z = -0.4
+        #     self.pub_cmd_vel.publish(twist)
+        #     return
         if not self.leave_tonnel:
-            
+            if  not self.current_task:
 
-            sectored_distances = self.get_sectored_lidar()
-            if min(ranges[60:120]) < 0.05:
-                twist.linear.x = 0.2
-                twist.angular.z = -0.3
-                self.pub_cmd_vel.publish(twist)
-                time.sleep(0.1)
-                return
-            # if min(front_range) <0.1:
-            #         # robot.move(linear_x=0.0, angular_z=0.0):
-            #     twist.linear.x = -0.2
-            #     twist.angular.z = 0.0
-            #     self.pub_cmd_vel.publish(twist)
-            #     time.sleep(0.4)
-            #     return
-            odom = self.get_normalized_odometry()
+                sectored_distances = self.get_sectored_lidar()
+                # if min(ranges[60:120]) < 0.05:
+                #     twist.linear.x = 0.2
+                #     twist.angular.z = -0.3
+                #     self.pub_cmd_vel.publish(twist)
+                #     time.sleep(0.1)
+                #     return
+                # if min(front_range) <0.1:
+                #         # robot.move(linear_x=0.0, angular_z=0.0):
+                #     twist.linear.x = -0.2
+                #     twist.angular.z = 0.0
+                #     self.pub_cmd_vel.publish(twist)
+                #     time.sleep(0.4)
+                #     return
+                odom = self.get_normalized_odometry()
 
-            if self.tonnel_state ==0:
+                if self.tonnel_state ==0:
+                        
+                    self.min_rad = odom['orient']
+                    self.max_rad = odom['orient'] + np.pi / 2
+                    self.get_logger().info(f"odom: {odom}")
+                    self.tonnel_state+=1
+
+                # Step 1: Determine the angle to turn
+                elif self.tonnel_state ==1 and not self.current_task:
+                # elif self.tonnel_state ==1:
                     
-                self.min_rad = odom['orient']
-                self.max_rad = odom['orient'] + np.pi / 2
-                self.get_logger().info(f"odom: {odom}")
-                self.tonnel_state+=1
-
-            # Step 1: Determine the angle to turn
-            elif self.tonnel_state ==1 and not self.current_task:
-            # elif self.tonnel_state ==1:
-                
-                self.filter_lidar_angles(sectored_distances, odom)
-                # if self.angle_diff!=0:
-                self.rotate_task(self.angle_diff)
-                    # time.sleep(0.1)
-                self.tonnel_state+=1
-                self.get_logger().info(f"Target angle: {self.angle_diff:.2f} degrees, Target distance: {self.distance_diff:.2f} m self.tonnel_state {self.tonnel_state}")
-            # Step 3: Move forward after completing the turn
-            else:
-                if not self.current_task:
-                    self.move_task(self.distance_diff * 0.5)
-                    self.tonnel_state-=1
+                    self.filter_lidar_angles(sectored_distances, odom)
+                    # if self.angle_diff!=0:
+                    self.rotate_task(self.angle_diff)
+                        # time.sleep(0.1)
+                    self.tonnel_state+=1
+                    self.get_logger().info(f"Target angle: {self.angle_diff:.2f} degrees, Target distance: {self.distance_diff:.2f} m self.tonnel_state {self.tonnel_state}")
+                # Step 3: Move forward after completing the turn
+                else:
+                    if not self.current_task:
+                        self.move_task(self.distance_diff)
+                        self.tonnel_state-=1
         else:
             self.get_logger().info(f'min(front_range) {min(front_range)}')
             if avg_right_dist > 3 and avg_left_dist > 3:
